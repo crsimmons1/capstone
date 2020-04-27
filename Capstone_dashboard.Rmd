@@ -1,0 +1,317 @@
+---
+title: "Baltimore Crime"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cerulean
+    source_code: https://github.com/crsimmons1/capstone
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(DT)
+library(plotly)
+library(zoo)
+library(ggmap)
+library(ggrepel)
+library(ggthemes)
+```
+
+Introduction to the Data {data-orientation=rows data-icon="fas fa-info-circle"}
+===============================================================================
+
+Row {data-height=600}
+---------------------
+
+### **Data**
+
+The Baltimore Crime data was retrieved from Data.gov and is updated every Monday. Find the link to the original dataset [here]("https://data.baltimorecity.gov/"). The rows represent one offense with information such as the location, the type of offense, the neighborhood where the offense took place, and many more. The outputted dataset below depicts the final dataset used for this analysis. 
+
+```{r, echo=FALSE, warning=FALSE}
+balt_clean <- read.csv("baltimore_cleaned2.csv")
+
+headed <- head(balt_clean, n=50)
+datatable(headed, options=list(bPaginate=FALSE))
+```
+
+Row {data-height=400}
+--------------------
+
+### **Added Variables**
+
+Added Variables include:
+
+1. **Weather Data**: precipitation, snow, temperature average, snow, snow depth
+
+2. **Socioeconomic Data**: unemployment rate for every month from 2015-2019
+
+
+### *Image retrieved from www.baltimorepolice.org*
+![](https://www.baltimorepolice.org/sites/default/files/New_BPD_Official_Seal_2017.png)
+
+### **Goals for Analysis**
+
+Our primary goal is to find the best way to convey Baltimore’s crime data in a way that is helpful to the Baltimore Police Department. 
+
+Our secondary goals were:
+
+* To predict what type of crime occured- violent or nonviolent
+
+* To predict how many crimes will occur in a given day 
+
+* To create visualizations that present interesting, informative findings 
+
+Graphs {data-icon="fas fa-chart-area"}
+======================================
+
+Row {.tabset}
+------------
+
+### Time Series Graph
+```{R,echo=FALSE}
+#Total Crime over years by season- load in ggthemes package
+#adding season variable
+
+yq <- as.yearqtr(as.yearmon(balt_clean$CrimeDate, "%m/%d/%Y") + 1/12)
+balt_clean$Season <- factor(format(yq, "%q"),
+                             levels=1:4,
+                             labels=c("Winter","Spring", "Summer", "Fall"))
+
+tot_c <-balt_clean %>% group_by(CrimeDate, Season) %>% summarise(Count= n())
+tot_c$CrimeDate <- as.Date(tot_c$CrimeDate, format="%m/%d/%Y")
+
+remove <- which(tot_c$Count == 421,)
+tot_c_fin <- tot_c[-remove,]
+
+fig0 <-ggplot(tot_c, color=Season)+
+  geom_line(aes(CrimeDate, Count, group=1)) +
+  scale_x_date(date_labels="%b %Y", date_breaks="1 year") +
+  ggtitle("Total Crime Throughout the Years") +
+  theme_economist()+
+  theme(plot.title=element_text(hjust=0.5))
+
+ggplotly(fig0, dynamicTicks = TRUE) %>%
+  rangeslider() %>%
+  layout(hovermode = "x")
+```
+
+### Line Graph of Daypart
+```{r,echo=FALSE}
+daypart_crime <- balt_clean%>% group_by(DayPart, Year) %>% summarise(count=n())
+
+ggplot(data=daypart_crime, aes(x=Year, y=count)) +
+  geom_line(aes(linetype=DayPart)) +
+  directlabels::geom_dl(aes(label=DayPart), method="smart.grid") +
+  theme_minimal() +
+  theme(legend.position="none") +
+  ylab("Total Crime")+
+  ggtitle("Total Crime Over the Years by Time of Day in Baltimore")
+```
+
+### Bar Graph of Districts
+```{r,echo=FALSE}
+district1 <- balt_clean %>%
+  group_by(District, Violent, Nonviolent) %>%
+  summarise(Count=n()) %>%
+  subset(District != "UNKNOWN") %>%
+  mutate(Type=(Violent==1)) %>%
+  mutate(Type= replace(Type, Violent==1, "Violent")) %>%
+  mutate(Type = replace(Type, Nonviolent==1, "Non-Violent"))
+
+ggplot(district1, aes(x= District, y=Count, group=Type, color=Type, fill=Type)) +
+  coord_flip()+
+  geom_bar(stat="identity", position=position_dodge()) +
+  theme_minimal() +
+  geom_text(aes(label=Count), position=position_dodge(0.9), hjust=-0.2) +
+  scale_y_continuous(limits=c(0,35000)) +
+  xlab("Districts of Baltimore") +
+  ggtitle("Crime Count Throughout the Districts")
+
+```
+
+### Line Graph of Seasons
+```{r,echo=FALSE}
+library(gghighlight)
+yq <- as.yearqtr(as.yearmon(balt_clean$CrimeDate, "%m/%d/%Y") + 1/12)
+
+balt_clean$Season <- factor(format(yq, "%q"), levels=1:4, labels=c("Winter","Spring", "Summer", "Fall"))
+
+try2 <- balt_clean %>%
+  group_by(Year, Season) %>%
+  count(Violent, Nonviolent) %>%
+  mutate(ViolentorNot = (Violent == 1))
+
+plot2 <- ggplot(try2, aes(x=Year, y=n, color=Season)) +
+  geom_line(aes(group=interaction(Season, ... = ViolentorNot))) +
+  scale_color_discrete(labels=c('Summer', "Fall", "Spring", "Winter")) +
+  ggtitle("Yearly Count of Violent vs. Non-Violent Offenses by the Seasons") +
+  ylab("Count of Offenses") + theme_classic() +
+  geom_text(x=2018.65, y=9280, label="Non-Violent", color="black", show.legend=FALSE) +
+  geom_text(x=2018.8, y=4870, label="Violent", color="black", show.legend=FALSE)
+
+
+ggplotly(plot2, tooltip=c("y"))
+```
+
+Analysis & Results {data-orientation=rows data-icon="fas fa-align-justify"}
+===========================================================================
+
+Row
+------
+
+### Percent of Violent Crimes 
+```{R,echo=FALSE}
+library(flexdashboard)
+crimeperday <- balt_clean %>%
+  count(Violent)
+
+val <- round(crimeperday[crimeperday$Violent == "1","n"]/(sum(crimeperday[crimeperday$Violent == "1","n"] + crimeperday[crimeperday$Violent == "0", "n"])) * 100, 2)
+
+valueBox(val$n, icon="fas fa-percent")
+```
+
+### Average Unemployment Rate
+```{r, echo=FALSE}
+val2 <- round(mean(balt_clean$Unemployment),2)
+
+valueBox(val2, icon="fas fa-exclamation-circle")
+```
+
+### District with most Number of Violent Crime
+```{r}
+manip <- balt_clean %>%
+  group_by(District) %>%
+  subset(Violent==1) %>%
+  summarise(count=n())
+
+max_dist <- manip[manip$count==max(manip$count), "District"]
+
+valueBox(value=max_dist$District, icon="fas fa-map-marked-alt")
+```
+
+Map Visualizations {data-orientation=columns data-icon="fas fa-map"}
+====================================================================
+
+Column {.tabset .tabset-fade data-width=600}
+----------------------------------------------
+
+### Violent Crime in the Northeast District 
+
+```{r,echo=FALSE, warning=FALSE}
+library(leaflet)
+
+com_case <- balt_clean[complete.cases(balt_clean),]
+
+ne <- com_case %>% 
+  filter(District == "NORTHEAST" & Violent == 1) %>%
+  group_by(Neighborhood, ) %>% 
+  summarise(count=n(), meanl = mean(Longitude), meanla =mean(Latitude)) 
+
+ne <- ne[complete.cases(ne),]
+
+leaflet() %>% addTiles() %>% 
+  addCircles(data=ne, ~meanl, ~meanla, radius = ~count, popup=paste("Neighborhood:", ne$Neighborhood, "<br>",
+                                                                    "Violent Crime Count:",ne$count), color="blue")
+```
+
+### 2019 Crime & the Top 5 Dangerous Neighborhoods of 2020 
+
+```{r, warnings=FALSE}
+# lab <- data.frame(read.csv("neighborhood_balt.csv"))
+# attach(lab)
+# lab$location <- as.character(lab$location)
+# lab$rank <- as.character(lab$rank)
+# lab$labels <- paste(rank, location, sep="-")
+# 
+# oneyear <- balt_clean %>% filter(Year == 2019) %>% 
+#   mutate(Type=(Violent==1)) %>%
+#   mutate(Type= replace(Type, Violent==1, "Violent")) %>%
+#   mutate(Type = replace(Type, Nonviolent==1, "Non Violent"))
+# 
+# oneyear <- oneyear[complete.cases(oneyear),]
+# 
+# map1 <- ggmap(get_map("Baltimore", zoom=12)) +
+#   stat_density2d(data=oneyear,
+#                  aes(x=Longitude, y=Latitude, fill=..level.., alpha=..level..),
+#                  bins=30,
+#                  geom="polygon") +
+#   geom_density2d(data = oneyear,
+#                  aes(x = Longitude, y = Latitude), size = 0.3)+
+#   geom_point(aes(x=longitude, y=latitude),
+#              data=lab,
+#              size=2, 
+#              color="red") +
+#   geom_label_repel(aes(longitude, latitude, label=labels), 
+#                    hjust=0, 
+#                    nudge_x = 0.1, 
+#                    direction="y", 
+#                    data=lab, 
+#                    size=1.5, 
+#                    family="Times") +
+#   facet_wrap(~Type) + 
+#   ggtitle("Crime in 2019") + 
+#   theme(plot.title=element_text(hjust=0.5)) + 
+#   guides(alpha=FALSE)
+# 
+# map1
+
+```
+
+Column {.tabset .tabset-fade data-width=400}
+---------------------------------------------
+
+### Explanation for Visualization 1
+
+<br>
+**Description** <br>
+
+From the analysis, the *Northeast* district had the most number of violent crimes. The visualization to the left depicts violent crime count for the neighborhoods in the northeast district with the size of the circle representing the neighborhood with the most violent crime count.
+<br>
+
+**Take Away** <br>
+
+The top neighborhoods with the highest violent crime count are shown below in the table.
+
+```{r}
+table <- data.frame("Neighborhood"= c("Frankford", "Belair-Edison", 
+                                      "Coldstream Homestead"), 
+                    "Violent Crime Count" = c(1639, 1600, 1044))
+library(knitr)
+kable(table)
+```
+
+**How to Use** <br>
+
+To view the neighborhood and respective violent crime count on the map, click on the circle.
+
+Zoom in and out of the map to click on the smaller circles.
+
+Drag along the map at a desired zoom level to view the violent crime counts of the surrounding neiborhoods.
+<br>
+
+**What Can Be Done in the Future?** <br>
+
+Further analyses could be performed to look  into why these neighborhoods have the highest number of violent crimes for the northeast region of Baltimore. 
+
+
+### Explanation for Visualization 2
+
+<br>
+**Description** <br>
+
+The visualizations to the left depict density maps that represent violent and nonviolent crime in all of Baltimore for 2019 along with labels of the top 5 most dangerous neighborhoods of Baltimore in 2020. See link for the article where the neighborhood data was extracted [here](https://www.roadsnacks.net/these-are-the-10-worst-baltimore-neighborhoods/) 
+
+From the start, one main goal of this analysis was to be able to predict crime with the most relevant information available. Viewing just crime levels in 2019 and comparing them with the top 5 dangerous neighborhoods in 2020 can give insight into how well the data can possibly predict crime as well as view trends in crimes in just the span of one year. 
+<br>
+
+**Take Away** <br>
+
+From the graphs, one can see that the volume of violent crimes exceeded the volume of nonviolent in 2019. Additionally, the most crime, either violent or nonviolent, occured near the central district of Baltimore. This conclusion is slightly different from the result of the analysis that stated the northeast district had the most violent crimes for the years 2015-2019. One reason for the difference could be a result of the natural shift of crime trends from year to year.
+
+Three of the five top dangerous neighborhoods of 2020 lie within the lighter colored areas which represent the higher crime counts. Dundalk and the Fairfield Area, the top two most dangerous neighborhoods, do not overlap with any of the data in this dataframe, which is surprising. Keep in mind, the location of these two neighborhoods could cover a wider area than represented on the map.
+<br>
+
+**What Can Be Done in the Future?** <br>
+
+Further analyses can be performed to output all the years 2015-2019 to see how crime trends have changed.
+
+

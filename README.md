@@ -17,6 +17,7 @@ Our primary goal is to find the best way to convey Baltimore’s crime data in a
 ## Data Files
 * unemployment_version_final.csv
 * weather_final.csv
+* neighborhood_balt.csv
 
 ### Please find all data files and scripts above.
 NOTE: ggmap package is used in Capstone_dashboard.rmd. To run that file, one needs to register their device with an API in order to use ggmap. 

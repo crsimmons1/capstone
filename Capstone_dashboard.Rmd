@@ -315,3 +315,314 @@ Three of the five top dangerous neighborhoods of 2020 lie within the lighter col
 Further analyses can be performed to output all the years 2015-2019 to see how crime trends have changed.
 
 
+Analysis & Results
+=========
+
+Columns {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Summary
+
+Our analysis focused on two types of predictive modeling: predicting the category of the crime, and predicting the total number of crimes. We summarize the results of these methods here. For more detail on the methodology of these methods, see the tabs on the left. For more detailed results, see the tab of the right. 
+
+Crimes in the dataset were divided into two broad categories: violent and nonviolent.  By predicting which category a single crime falls into, this provides insight into what factors are the most influential on that type of crime occurring.  To do this we used logistic regression. 
+
+After checking that logistic regression's assumptions were met, we conducted two versions of logistic regression. The second version was created to improve upon our first by increasing our Type 1 Error and sensitivity rates, as well as make our model more interpretable. Our second version significantly improved upon our first model and we were able to determine that the most significant predictors used to predict if a violent crime will occur are the month, district, precipitation, the average temperature, the unemployment rate, and the part of day. Lastly, so that our models could potentially be used for predicting violent crime occurrences with more accuracy and providing Baltimore PD with a better understanding of how to allocate their resources, we want to try to improve upon these models by finding more datasets with predictors that could potentially have a greater influence on whether a crime will occur.
+
+Predicting the amount of daily crime can be useful for many reasons, the most important of which is staffing. By taking into account the weather, current unemployment rate, or last week's numbers, the Baltimore Police Department might be able to use their officer's time more effectively by staffing only the officers they need. It may also reveal which factors are the most important.  To do this we used linear regression, tree diagrams, and time series predictive modeling. 
+
+For the decision tree, we first built an initial tree. This tree is visually easy to read but is very vulnerable to changes in the dataset. Every time we make a new train dataset, the tree looks different. In order to overcome this, we borrow the idea of bootstrapping (random forest and bagging). For each method, 2000 trees were created, and the average is taken. Each method differs in how variables are chosen for each split - bagging uses all of them, and random forest only uses some of them. In our case, random forest with using only two predictors for each split made the model perform significantly better. The last method we used was Boosting. Boosting is similar to bagging/random forest, but the trees are built sequentially with information provided by previous trees. Boosting gave us the best model performance. After the analysis, we could confirm that the temperature was the most significant variable in determining the total number of crimes for each day. The next important variables were month and unemployment rate. Then precipitation and year followed.
+
+Time series models use prior values about an event to forecast future ones, often taking into account repetitive cycles in the data referred to as seasonality. In order to perform time series analysis, the overall trend and seasonality must be removed. This was done by subtracting the prior day’s value from the current value, which is called taking the first difference. To remove the seasonality, in this case a weekly trend, the value from a week ago is subtracted. Then this data was used to successfully forecast values into the month of January. This tells us that the weekly cycle of crime is important – that is, we can successfully use past values to predict future ones with no further information. 
+
+
+### Motivation
+
+**Objectives**
+
+Our primary goal is to find the best way to convey Baltimore’s crime data  in a way that is helpful to the Baltimore Police Department. Our secondary goals were:
+
+* To predict what type of crime occured (violent or nonviolent)
+* To predict how many crimes will occur in a given day
+* To create visualizations that present interesting, informative findings 
+
+
+**Motivations**
+
+Predicting and analyzing crime is a field that has been around for a long time, and for good reason. Finding the motivations and situations that lead to a crime occuring could lead to a safer, more secure world. The "routine activity approach" is a theory which emphasizes the circumstances in which a crime occurs, rather than the traits of the perpetrator, to analyze crime trends (Cohen & Felson, 1979).
+
+There is evidence that property crimes  are driven by pleasant weather, which is consistent with this approach (Hipp & Curran, 2004).  Property crimes are nonviolent crimes which involve the theft or destruction of someone else’s property. 
+
+There is also empirical evidence that crime rates increase in hotter years, and that crime is more prevalent in hotter parts of the year.  Furthermore, the effect of temperature is stronger on violent crimes than it is on nonviolent crimes (Anderson, 1987).   Conversely, there is a strong positive effect of unemployment on property crimes, while the evidence is much weaker for violent crimes (Raphael & Ebmer, 2001).
+
+For this reason crimes in the dataset were divided into two broad categories: violent and nonviolent.  By predicting which category a single crime falls into, this provides insight into what factors are the most influential on that type of crime occurring.  
+
+Predicting the amount of daily crime can be useful for many reasons, the most important of which is staffing. By taking into account the weather, current unemployment rate, or last week's numbers, the Baltimore Police Department might be able to use their officer’s time more effectively by staffing only the officers they need. It may also reveal which factors are the most important.
+
+By creating interesting data visualizations it is easier to convey complicated trends and patterns in a straightforward fashion. The apprehensibility of the graphics is especially true considering the primary audience for these findings, the BPD.  
+
+**Sources:**
+
+* Anderson, C. A. (1987). Temperature and aggression: Effects on quarterly, yearly, and city rates of violent and nonviolent crime. Journal of personality and social psychology, 52(6), 1161.
+* Cohen, L. E., & Felson, M. (1979). Social change and crime rate trends: A routine activity approach. American sociological review, 588-608.
+* Hipp, J. R., Curran, P. J., Bollen, K. A., & Bauer, D. J. (2004). Crimes of opportunity or crimes of emotion? Testing two explanations of seasonal change in crime. Social Forces, 82(4), 1333-1372.
+* Newberg, L. (2005). [Some Useful Statistics Definitions.]("https://www.cs.rpi.edu/~leen/misc-publications/SomeStatDefs.html")
+* Raphael, S., & Winter-Ebmer, R. (2001). Identifying the effect of unemployment on crime. The Journal of Law and Economics, 44(1), 259-283.
+
+
+### Logistic Regression
+
+**Building Model 1:**
+
+* We initially formed a logistic regression model including all of our predictors (except for Hour, which violated the multicollinearity assumption) to determine which were insignificant. The output showed that all were significant except for the predictors Snow and Snow Depth.
+* We then split the data 80:20 into training and testing data. We ran logistic regression to form a model based on the training data set, not including Hour, Snow, and Snow Depth. 
+* Then we used the model to predict values based on our testing data. Our cutoff probability for a positive value or a Violent Crime occuring, was 50%. 
+* Using the probabilities output, we decided that if a probability was greater than or equal to 50%, we would consider that as a "1" (Violent Crime Occured) and a probability less than 50% would be considered a "0" (Non-Violent Crime Occured). 
+* We then used the testing data to determine how accurate our model was. The confusion matrix output showed an accuracy rate of 70%, which is good, but our Type I Error rate is not ideal at 0.07%.
+* We then formed an ROC curve with an AUC of  0.58, which isn't ideal but still indicates the model does better than predicting at random. This curve is depicted below.
+
+
+**Building Model 2:**
+
+* We continued with our logistic regression model evaluation, but this time used an automated variable selection process to further tune the variables within our model.
+* After running stepwise regression, the variable, Day, was removed on top of the variables removed from the first model. 
+* Following the process of our first model, we then split the data 80:20 into training and testing data and ran logistic regression on the training data. 
+* We then predicted values using testing data, which output probabilities that a violent crime would occur. 
+* To improve from our first model, we lowered the threshold of a positive result, or a "1", to be greater than or equal to 35% instead of 50% from the initial model to be more conservative. 
+
+
+**Model Comparison**
+
+* From model 1 to model 2, the threshold of a positive output was lowered to increase sensitivity rate (thus decreasing type II error) since we want to be as accurate as possible when it comes to predicting if a violent crime will occur or not. 
+* Overall, the second model is a better fit for our interest in predicting if a violent crime will occur or not even if our accuracy rate is lower than our initial model. 
+
+Metrics| Model 1 | Model 2
+------------- | ------------- | -------------
+**AUC** | 0.58 | 0.59
+**Accuracy** | 70% | 65%
+**Specificity Rate** | 99.93% | 79%
+**Type I Error** | 0.07% | 20%
+**Sensitivity Rate** | 0.1% | 31%
+**Type II Error** | 99.9% | 69%
+
+
+
+
+
+### Tree Models
+
+**Initial Model**
+
+* We splitted the dataset into half to create a train dataset to build a model and a test dataset to test our model.
+* The temperature average is the most important variable.
+* For a day with temperature less than 46.5 F, the next most significant variable was unemployment, followed by year and snow depth. 
+* For a day with temperature more than 46.5 F, then Month was the next significant variable, followed by unemployment. 
+
+**After Bagging**
+
+* For bagging, we used all predictors to be considered for bootstrap.
+* Generated 2000 trees in total.
+* Because it is hard to interpret a large number of trees, we would obtain an overall summary of the importance of each predictor using the RSS. 
+* Temperature average is the most important predictor, followed by unemployment, month, and year.
+
+**After Random Forest**
+
+* Usually, when using a random forest method to build a regression tree, we would use the p/3. In this case it would be 2.33, so we tried both 2 and 3.  Using 2 gave a better test MSE, so we ended up going with 2.
+* Also generated 2000 trees.
+
+**After Boosting**
+
+* Boosting is another way to improve the predictive performance of tree-based methods on test data, by building trees sequentially where a tree is built given the information provided by previous trees.
+* We also generated 2000 trees.
+
+
+**Model Comparison**
+
+The best model, since is has the lowest MSE, is boosting. 
+
+Model | Test MSE | % Variance Explained
+------------- | ------------- | -------------
+**Initial** | 22.93837 |   
+**Bagging** | 18.83332| 28.98%
+**Random Forest** | 17.33683 | 33.77%
+**Boosting** | 16.98436 | 
+
+
+### Linear Regression
+
+**Model Building**
+
+* We used the function lm to create a model with the chosen variables. 
+* The significant variables were 'Month', 'Temperature', and 'Precipitation'.
+* The Adjusted R-Squared was  0.3041
+* The final model: 
+
+Total Crime = 1506.4027 + (-0.7054)*Year + (1.3848)*Month + (0.0863)*Day + (0.5819)*Temperature + ( -6.8273)*Precipitation + (1.0690)*Unemployment
+
+
+### Time Series
+
+**Model Building**
+
+* There is a clear overall trend and seasonal trend which must be removed to satisfy the seasonality assumption. 
+* The periodogram indicates that the data should be smoothed. A Daniel kernel with L=15 was used to determine the period. On the smoothed periodogram, you can see spikes at around 0.15 and 0.29, which indicates the frequency is 0.15 and the period is 6.67, so m=7.
+* To remove the trends, the first difference was taken, in addition to the seasonal difference with a period of 7. 
+* From there, several possible parameter values for a SARIMA model were chosen from the ACF and PACF plots. 
+    * For the nonseasonal AR component, note that the PACF is significant for the few first lags. This indicates that p=1,2, 3, or 4. 
+    * For the nonseasonal MA component, note that there is a decay present in the first few lags of the PACF plot, and that the ACF is significant at lag 1 and 3. Lag 3 might be a false positive, or it might be significant so q=1 or 3. 
+    * For the seasonal AR component, note that the ACF has a decay at lag 7, and the PACF is significant at several multiples of 7. P=1,2, 3, 4, or 5. 
+    * For the seasonal MA component, note that there is a decay present after each multiple of 7 in the PACF plot, and that the ACF is significant at lag 7 so Q=1.
+* Of the many models tried, only two models had significant higher order coefficients as well as sufficient diagnostic plots. Both models satisfy the diagnostic plot requirements.
+    * Model 1: SARIMA(1,1,1)x(0,1,1)7 
+    * Model 2: SARIMA(0,1,3)x(0,1,1)7
+* Both models  were fitted to the data until Dec. 31st, 2019. Then it was used to predict for 31 days. 
+
+**Model Comparison**
+
+Both models had prediction intervals that contained all of the real values for January of 2020. All of the accuracy metrics select model 2, as well as the AIC and AICc. Only the BIC selects model 1, indicating that model 2 is superior. 
+
+
+
+
+Metrics| Model 1 | Model 2
+------------- | ------------- | -------------
+**AIC** | 8.449309 | 8.448679  
+**AIC** | 8.449316 | 8.448692  
+**BIC** | 8.461382 | 8.463771 
+**MAE** | 12.21906 | 12.22173  
+**RSME** | 14.5193 | 14.53334  
+**ME** | 0.4678299 | -0.7078554
+**MPE** | -2.50532  | -2.73881    
+**MAPE** | 12.08573 | 12.11812   
+
+
+Columns {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Logistic Regression
+
+**Key Variables** 
+
+* Month
+* District
+* Precipitation
+* Average temperature
+* Unemployment
+* Part of day 
+
+**Interpretation** 
+
+* In the end, the most significant variables used to predict if a violent crime would occur or not in Baltimore for logistic regression are month, district, precipitation, average temperature , unemployment, and part of day.
+
+**Future Improvements**
+
+* We would also run more iterations of the model to try to further balance sensitivity, specificity and accuracy. 
+* If we were to have more time, we would try to search for more datasets that include more variables regarding human behavior that could have a correlation with crime, such as: 
+    * Additional indicators of economic condition, such as poverty level, cost of living, or consumer price index. 
+    * Information by district, such as literacy rates, socioeconomic levels, demographics (ethnic and racial makeup, age composition, gender composition). 
+    * Information by neighborhood, such as population density, degree of urbanization, median income, youth concentration, crime reporting practices of the residents, 
+    * Information about the offender provided by the BPD such as age or gender 
+    * If the crime occured during a holiday, festival, and/or school vacation period. 
+
+
+
+
+### Tree Models
+
+**Variable Importance Ranked** 
+
+1. Average temperature
+2. Unemployment
+3. Month
+4. Precipitation
+5. Year
+6. Snow Depth
+7. Snow
+
+**Interpretation** 
+
+* The average temperature of the day is the most important variable in predicting total number of crimes, and unemployment is a close second. 
+* The next important variable turns out to be Month, followed by precipitation. 
+* Year, Snow, and Snow depth are relatively unimportant. 
+
+**Future Improvements**
+
+If we were to have more time, we would try to search for more datasets that include more variables regarding human behavior that could have a correlation with crime, such as: 
+
+* Additional indicators of economic condition, such as:
+    * Poverty level
+    * Cost of living
+    * Consumer price index. 
+* Information by district, such as:
+    * Literacy rates
+    * Socioeconomic levels
+    * Demographics (ethnic and racial makeup, age composition, gender composition).
+* Information by neighborhood, such as: 
+    * Population density
+    * Degree of urbanization
+    * Median income
+    * Youth concentration
+    * Crime reporting practices of the residents
+* Information about the offender provided by the BPD such as age or gender 
+* If the crime occured during a holiday, festival, and/or school vacation period. 
+
+
+
+### Linear Regression 
+
+**Key Variables** 
+
+* Month
+* Precipitation
+* Average temperature
+
+**Interpretation** 
+
+* The most significant predictors used to predict if a violent crime will occur are the month, precipitation, and average temperature.
+* The Adjusted R-Squared indicates that the model does not do a good job in predicting the outcome, but this is expected as it is hard to predict people's behavior with only a few variables.
+
+**Future Improvements**
+
+
+If we were to have more time, we would try to search for more datasets that include more variables regarding human behavior that could have a correlation with crime, such as: 
+
+* Additional indicators of economic condition, such as:
+    * Poverty level
+    * Cost of living
+    * Consumer price index. 
+* Information by district, such as:
+    * Literacy rates
+    * Socioeconomic levels
+    * Demographics (ethnic and racial makeup, age composition, gender composition).
+* Information by neighborhood, such as: 
+    * Population density
+    * Degree of urbanization
+    * Median income
+    * Youth concentration
+    * Crime reporting practices of the residents
+* Information about the offender provided by the BPD such as age or gender 
+* If the crime occured during a holiday, festival, and/or school vacation period. 
+
+ 
+
+### Time Series
+
+**Key Trends** 
+
+* Overall yearly trend 
+* Weekly cycle 
+
+**Interpretation** 
+
+* The weekly cycle of crime is important – that is, we can successfully use past values to predict future ones with no further information. 
+
+**Future Improvements**
+
+* Both models performed reasonably well, however a more accurate model might exist. In particular, lowering the standard error will provide narrower prediction intervals. 
+* Additional algorithms might yield more insight, such as: 
+    * Holt Winters Exponential Smoothing is used for univariate time series with trend and seasonal components, which makes it a good fit since crime is a scalar. 
+    * Seasonal Autoregressive Integrated Moving-Average with Exogenous Regressors (SARIMAX) is an extension of SARIMA modeling, and includes exogenous variables. 
+* Another possibility is the use of multiple seasonality trends. No viable models with the lag of 365 were found, but it might be that the weekly trend was obscuring the yearly trend. Modeling with the yearly and weekly trend might produce better results. 
+
+
+

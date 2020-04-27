@@ -15,9 +15,9 @@ Our primary goal is to find the best way to convey Baltimore’s crime data in a
 4) Jenny Jang
 
 ## Data Files
-* unemployment_version_final.csv
-* weather_final.csv
-* neighborhood_balt.csv
+* unemployment_version_final.csv : data file containing unemployment rate of baltimore for each month from 2015-2019
+* weather_final.csv : data file containing data on precipitation, snow, snow depth, average temperature, etc. for every day from 2015-2019
+* neighborhood_balt.csv: data file containing location and rank of top 5 most dangerous neighborhoods in 2020 for Baltimore. 
 
 ### Please find all data files and scripts above.
-NOTE: ggmap package is used in Capstone_dashboard.rmd. To run that file, one needs to register their device with an API in order to use ggmap. 
+NOTE: ggmap package is used in Capstone_dashboard.rmd. To run that file, one needs to register their device with an API in order to use ggmap and produce certain visualizations that require ggmap software. 

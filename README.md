@@ -1,5 +1,5 @@
 # Analysis on Baltimore PD Crime Data
-Capstone project
+Capstone project for the Spring of 2020. Completed on April 28th, 2020. 
 
 ## Project Objectives
 Our primary goal is to find the best way to convey Baltimore’s crime data in a way that is helpful to the Baltimore Police Department. Our secondary goals were:
@@ -15,12 +15,13 @@ Our primary goal is to find the best way to convey Baltimore’s crime data in a
 4) Jenny Jang
 
 
-## Raw Data Files
+## Data 
+# Raw Data Files
 * **BPD_Part_1_Victim_Based_Crime_Data_April25_2020.csv**: raw data from the Baltimore Police Department found [here](https://data.baltimorecity.gov/Public-Safety/BPD-Part-1-Victim-Based-Crime-Data/wsfq-mvij/data). Each row is an offense, with variables such as location, time, date, offense description, weapons, ect.
 * **unemployment_version_final.csv** : Baltimore’s monthly unemployment rates from the Maryland Department of Labor from 2015-2019. Minor data cleaning has been done in Excel.
 * **weather_final.csv** : weather data from the National Center for Environmental Information containing data on precipitation, snow, snow depth, average temperature, etc. for every day from 2015-2019. Minor data cleaning has been done in Excel.
 
-## Cleaned/Created Data Files
+# Cleaned/Created Data Files
 * **baltimore_daily_cleaned.csv**: This contains all variables from 2014-2019 summarized by date. Run raw BPD data through DataCleaning_part1.R and then through DataCleaning_part2.ipynb to get this file.
 * **baltimore_cleaned.csv**: This contains all variables from 2014-2019 as a transaction table. Run raw BPD data through DataCleaning_part1.R and then through DataCleaning_part2.ipynb to get this file.
 * **neighborhood_balt.csv:** created data file compiling location and rank of top 5 most dangerous neighborhoods in 2020 for Baltimore.
@@ -31,7 +32,7 @@ Our primary goal is to find the best way to convey Baltimore’s crime data in a
 * **LinearRegression.R** contains a simple MLR model.
 
 ## Predicting Crime Type
-* **Logistic_Regression.R** - contains 2 logistic regression models.
+* **LogisticRegression.R** - contains 2 logistic regression models.
 
 ## Visualizations
 * **TimeSeries.R** - contains COVID-19 time series plot

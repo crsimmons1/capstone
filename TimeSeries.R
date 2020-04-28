@@ -5,10 +5,51 @@ setwd("~/DataScience/capstone")
 
 library(astsa) ##load package for acf2 and sarima functions
 
-BPDD <- read.csv("baltimore_daily_cleaned_April18th2020.csv") 
-BPDD$TotalCrime <- tot_c2$Count
+
+# line graph of total crime throughout the years with economics theme
+library(zoo)
+library(ggthemes)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+#load in datafile
+BPD <- read.csv("BPD_Part_1_Victim_Based_Crime_Data_April25_2020.csv") 
 
 
+### Creating date columns
+BPD$CrimeDate <- as.character(BPD$CrimeDate) #sets CrimeDate column as character variable
+
+BPD$CrimeDate <- as.Date(BPD$CrimeDate, "%m/%d/%Y") #creates CrimeDate column as date variable
+
+df_date <- data.frame(date = BPD$CrimeDate,
+                      year = as.numeric(format(BPD$CrimeDate, format = "%Y")),
+                      month = as.numeric(format(BPD$CrimeDate, format = "%m")),
+                      day = as.numeric(format(BPD$CrimeDate, format = "%d"))) #creates year, month, and day as separate columns
+
+df_date <- select(df_date, year, month, day) #selecting certain columns 
+
+BPD_4 <- cbind(df_date, BPD) #binding date columns to original data frame
+
+BPD_4$CrimeDate <- format(BPD_4$CrimeDate, "%m/%d/%Y") #reformatting CrimeDate Column to desired format
+
+balt_clean <- BPD_4[BPD_4$year >= 2014,] #subsets dataframe to years 2014>
+
+
+#adding season variable
+yq <- as.yearqtr(as.yearmon(balt_clean$CrimeDate, "%m/%d/%Y") + 1/12) 
+balt_clean$Season <- factor(format(yq, "%q"), 
+                            levels=1:4, 
+                            labels=c("Winter","Spring", "Summer", "Fall"))
+
+
+tot_c2 <- balt_clean %>% group_by(CrimeDate) %>% summarise(Count=n()) # obtaining count of crimes for each day
+
+tot_c2<- merge(tot_c2, balt_clean[,c(4,20)], by=c("CrimeDate"))
+
+tot_c2$CrimeDate <- as.Date(tot_c2$CrimeDate, format="%m/%d/%Y") # changing CrimeDate variable to date format
+
+
+BPDD<- tot_c2[!duplicated(tot_c2)]
 # Replace outliers with the value 200 
 BPDD$TotalCrime[BPDD$TotalCrime >= 200] <- 200
 
@@ -16,7 +57,7 @@ BPDD$TotalCrime[BPDD$TotalCrime >= 200] <- 200
 Crime2020 <-ts(BPDD$TotalCrime)
 
 # Find the Number of Days
-n <- length(DailyTotal)
+n <- length(Crime2020)
 n
 # Row number of last day of 2019 
 n2019 <- 1826
@@ -246,51 +287,6 @@ mae(error)
 #########################################################
 # COVID 19                                              #
 #########################################################
-
-
-# line graph of total crime throughout the years with economics theme
-library(zoo)
-library(ggthemes)
-library(ggplot2)
-library(tidyverse)
-library(dplyr)
-#load in datafile
-BPD <- read.csv("BPD_Part_1_Victim_Based_Crime_Data_April18th2020.csv") 
-
-
-
-
-### Creating date columns
-BPD$CrimeDate <- as.character(BPD$CrimeDate) #sets CrimeDate column as character variable
-
-BPD$CrimeDate <- as.Date(BPD$CrimeDate, "%m/%d/%Y") #creates CrimeDate column as date variable
-
-df_date <- data.frame(date = BPD$CrimeDate,
-                      year = as.numeric(format(BPD$CrimeDate, format = "%Y")),
-                      month = as.numeric(format(BPD$CrimeDate, format = "%m")),
-                      day = as.numeric(format(BPD$CrimeDate, format = "%d"))) #creates year, month, and day as separate columns
-
-df_date <- select(df_date, year, month, day) #selecting certain columns 
-
-BPD_4 <- cbind(df_date, BPD) #binding date columns to original data frame
-
-BPD_4$CrimeDate <- format(BPD_4$CrimeDate, "%m/%d/%Y") #reformatting CrimeDate Column to desired format
-
-balt_clean <- BPD_4[BPD_4$year >= 2014,] #subsets dataframe to years 2014>
-
-  
-#adding season variable
-yq <- as.yearqtr(as.yearmon(balt_clean$CrimeDate, "%m/%d/%Y") + 1/12) 
-balt_clean$Season <- factor(format(yq, "%q"), 
-                            levels=1:4, 
-                            labels=c("Winter","Spring", "Summer", "Fall"))
-
-
-tot_c2 <- balt_clean %>% group_by(CrimeDate) %>% summarise(Count=n()) # obtaining count of crimes for each day
-
-tot_c2<- merge(tot_c2, balt_clean[,c(4,20)], by=c("CrimeDate"))
-
-tot_c2$CrimeDate <- as.Date(tot_c2$CrimeDate, format="%m/%d/%Y") # changing CrimeDate variable to date format
 
 remove <- which(tot_c2$Count >= 250) #finding which row to remove
 tot_c_fin <- tot_c2[-remove,] #subsetting to everything but the removed row

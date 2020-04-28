@@ -1,0 +1,241 @@
+---
+title: "Code For Data Visualization"
+author: "Jeannette Jiang"
+date: "4/22/2020"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    theme: united
+    toc_collapse: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading in packages
+```{r packages, message=FALSE}
+library(tidyverse)
+library(ggrepel)
+library(zoo)
+library(plotly)
+library(gghighlight)
+library(ggthemes)
+library(ggmap) # NOTE: need to register computer with unique API key before utilizing ggmap
+```
+
+### Setting Up The Data
+```{r set up}
+##loading in data
+baltimore_cleaned <- read.csv("baltimore_cleaned.csv")
+
+#converting precipitation to logical for original baltimore dataset
+balt_clean <- mutate(baltimore_cleaned, Rain = (Precipitation > 0))
+balt_clean$Rain <- as.character(as.integer(balt_clean$Rain))
+
+#adding season variable
+yq <- as.yearqtr(as.yearmon(balt_clean$CrimeDate, "%m/%d/%Y") + 1/12) 
+balt_clean$Season <- factor(format(yq, "%q"), 
+                            levels=1:4, 
+                            labels=c("Winter","Spring", "Summer", "Fall"))
+```
+
+### Graphs
+
+Graph that shows total crime by daypart
+```{r}
+daypart_crime <- balt_clean %>% group_by(DayPart, Year) %>% summarise(count=n()) #obtaining count for different parts of day
+
+ggplot(data=daypart_crime, aes(x=Year, y=count)) + ## graphing count
+  geom_line(aes(linetype=DayPart)) +  ## adding line graph layer and setting different linetypes corresponding to different parts of day
+  directlabels::geom_dl(aes(label=DayPart), method="smart.grid") + # add labels of daypart
+  theme_minimal() + #changing graph background theme to minimal
+  theme(legend.position="none") + # no legend
+  ylab("Total Crime") + #changing y axis title
+  ggtitle("Total Crime Over the Years by Time of Day in Baltimore") #adding title to entire plot
+
+```
+
+
+Code to plot violent or not offenses by year and season
+```{r}
+count_year <- balt_clean %>%  # obtaining count of violent and nonviolent crimes by year and season
+  group_by(Year, Season) %>% 
+  count(Violent, Nonviolent) %>% 
+  mutate(ViolentorNot = (Violent == 1))
+
+plot2 <- ggplot(count_year, aes(x=Year, y=n, color=Season)) + #plotting count
+  geom_point(aes(shape=ViolentorNot), size=2) + # adding points with shape dictated by a violent or nonviolent crime
+  geom_line(aes(group=interaction(Season, ViolentorNot))) + # adding line graph
+  ggtitle("Yearly Count of Violent vs. Non-Violent Offenses by the Seasons") + # adding title
+  ylab("Count of Offenses") + # changing y axis title
+  theme_classic() + # changing theme of graph to classic
+  gghighlight(use_group_by=TRUE, label_key=Season) # highlights line with season
+```
+
+Plots total crime 
+```{r}
+tot_c2 <- balt_clean %>% group_by(CrimeDate) %>% summarise(Count=n()) # obtaining count of crimes for each day
+tot_c2$CrimeDate <- as.Date(tot_c2$CrimeDate, format="%m/%d/%Y") # changing CrimeDate variable to date format
+
+remove <- which(tot_c2$Count == 421,) #finding which row to remove
+tot_c_fin <- tot_c2[-remove,] #subsetting to everything but the removed row
+
+ggplot(tot_c_fin, aes(x=CrimeDate, y=Count)) + #plotting the counts without the outlier
+  geom_line(aes(group=1)) + # adding line graph
+  scale_x_date(date_labels="%b %Y", date_breaks="1 year") + # scaling the tick marks of the x axis
+  theme_economist() + # changing background theme to economist
+  ggtitle("Total Crime Throughout the Years") + # adding title
+  theme(plot.title=element_text(hjust=0.5)) # centering tick labels
+```
+
+Graph about count of crimes by District
+```{r}
+district1 <- balt_clean %>% # obtaining count of violent and nonviolent crimes by district
+  group_by(District, Violent, Nonviolent) %>%
+  summarise(Count=n()) %>%
+  subset(District != "UNKNOWN") %>%
+  mutate(Type=(Violent==1)) %>% 
+  mutate(Type= replace(Type, Violent==1, "Violent")) %>% 
+  mutate(Type = replace(Type, Nonviolent==1, "Non-Violent"))
+
+ggplot(district1, aes(x= District, y=Count, group=Type, color=Type, fill=Type)) + # plotting count 
+  coord_flip()+ # flipping coordinates so district names don't overlap
+  geom_bar(stat="identity", position=position_dodge()) + #adding bar graph
+  theme_minimal() + # changing theme to minimal
+  geom_text(aes(label=Count), position=position_dodge(0.9), hjust=-0.2) + # adding count text for each bar
+  scale_y_continuous(limits=c(0,35000)) + # adding a set limit for the y axis
+  xlab("Districts of Baltimore") + # changing x axis title
+  ggtitle("Crime Count Throughout the Districts") # adding title 
+
+```
+
+Map Visualizations
+```{r}
+
+## Graph 1- plots violent crimes in 2019 with top 5 most dangerous neighborhoods labeled 
+lab <- data.frame(read.csv("neighborhood_balt.csv")) #loads in dataset
+attach(lab) # can now call variables without subsetting from dataset
+lab$location <- as.character(lab$location) # changing class of variable location
+lab$rank <- as.character(lab$rank) #changing class of variable rank
+lab$labels <- paste(rank, location, sep="-") # adding labels 
+
+oneyearviolent <- balt_clean %>% filter(Year == 2019 & Violent == 1) # filter original dataset to just the year 2019 and only violent crimes
+
+ggmap(get_map("Baltimore", zoom=11)) + # using ggmap package, pulls baltimore map
+  geom_point(aes(x=Longitude, y=Latitude, color=District), data=oneyearviolent) + # adds point to baltimore map
+  geom_point(aes(x=longitude, y=latitude), data=lab, size=1) + # adds points of neighborhoods in lab dataset
+  geom_label_repel(aes(longitude, latitude, label=labels), data=lab, size=2) # adds labels to the neighborhood points using ggrepel package
+
+
+## Graph 2: stat-density plot of crime with top 5 worst neighborhoods labeled
+ggmap(get_map("Baltimore", zoom=11)) + #using ggmap package, pulls baltimore mpa
+  stat_density2d(data=oneyearviolent, # adds density bins 
+                 aes(x=Longitude, y=Latitude, fill=..level.., alpha=0.25), 
+                 bins=30,
+                 geom="polygon") +
+  geom_density2d(data = oneyearviolent, 
+                 aes(x = Longitude, y = Latitude), size = 0.3)+
+  geom_point(aes(x=longitude, y=latitude), #adds points of neighborhoods in lab dataset
+             data=lab, 
+             size=2, color="red") +
+  geom_label_repel(aes(longitude, latitude, label=labels), data=lab, size=2) #adds labels to the neighborhood points 
+```
+worst neighborhoods for 2020 found here: https://www.roadsnacks.net/these-are-the-10-worst-baltimore-neighborhoods/
+
+Additional graphs
+```{r}
+#bar graph of crime by daypart
+ggplot(data=daypart_crime, aes(x=DayPart, y=count,fill=as.factor(Year), color=as.factor(Year))) + 
+  geom_bar(stat="identity", position=position_dodge())+
+  theme_minimal() + 
+  theme(panel.grid=element_blank()) + 
+  ggtitle("Total Crime During Different Times of Day") + 
+  labs(fill="Year", color="Year") 
+
+#graph that shows each count of each type of crime in dataset throughout all the years
+desc_by_crime <- balt_clean %>% 
+  filter(Rain== 1) %>% 
+  group_by(CrimeType, Year) %>% 
+  count(Description)
+
+ggplot(data=desc_by_crime, aes(x=fct_reorder(Description, n), y=n)) + 
+  geom_bar(stat="identity", width=0.8,color="blue", fill="blue") +
+  facet_wrap(.~Year, ncol=1) + 
+  theme_minimal() + 
+  coord_flip() +
+  xlab("Type of Crime") + 
+  ylab("Count") + 
+  stat_summary(fun.y=mean, aes(label=..y..), hjust=-0.2, geom="text")+ 
+  theme(panel.grid=element_blank(), axis.line.x.bottom = element_line(color="black")) +
+  scale_y_continuous(limits=c(0, 8000))
+
+#graph that plots violent crimes and nonviolent with seasonality
+count_b <- balt_clean %>% 
+  group_by(Month, Season) %>% 
+  count(Violent, Nonviolent) %>% 
+  mutate(ViolentorNot = (Violent == 1))
+
+df <- data.frame(season=c("Winter", "Spring", 
+                          "Summer", "Fall"),
+                 start=c(0, 3, 6, 9),
+                 end=c(3, 6, 9, 11),
+                 season2 = c("Winter", "Spring", 
+                             "Summer", "Fall"),
+                 stringAsFactors=FALSE)
+df_fin <- data.frame(season="Winter", start=11, end=13)
+
+o <- ggplot(count_b, aes(x= Month, y = n)) + 
+  geom_rect(data=df, aes(NULL, NULL, xmin=start, 
+                         xmax=end, fill=season), 
+            ymin =0, ymax=17000, alpha=0.3) +
+  geom_rect(data=df_fin, aes(NULL, NULL, xmin=start, 
+                          xmax=end, fill=season), 
+            ymin = 0, ymax=17000, alpha=0.3) +
+  geom_point(aes(shape=ViolentorNot)) + 
+  scale_shape_manual("Violent or Non-Violent Offense", 
+                     values=c("FALSE"=15, "TRUE"= 17), 
+                     labels=c("Non-Violent", "Violent"))+
+  scale_x_continuous(breaks=1:12)+
+  theme_minimal() + 
+  scale_fill_manual(values=c("Fall" = "yellow2", "Spring" = "orchid1", 
+                             "Summer"="orange", 
+                             "Winter"="lightskyblue"))
+
+# line graph of total crime throughout the years with economics theme
+ggplot(tot_c, aes(x=CrimeDate, y=Count, color=Season)) + 
+  geom_line(aes(group=1)) +
+  scale_x_date(date_labels="%b %Y", date_breaks="1 year") + 
+  theme_economist() +
+  scale_color_economist() +
+  ggtitle("Total Crime Throughout the Years") +
+  theme(plot.title=element_text(hjust=0.5))
+
+# scatterplot comparing temp with crime count
+temp1 <- balt_clean %>% group_by(CrimeDate, Tavg) %>% summarise(Count=n())
+temp1$CrimeDate <- as.Date(temp1$CrimeDate, format="%m/%d/%Y")
+regression <- summary(lm(temp1$Count ~ temp1$Tavg))
+
+ggplot(temp1, aes(x=Tavg, y=Count)) + 
+  geom_point() + 
+  geom_smooth(method=lm, se=F) + 
+  annotate(label="R^2 Value: 0.2277743 ", x= 80, y=400, geom="text")
+
+## Violent Crimes Distribution Plot
+viol_theft <- balt_clean %>% 
+  group_by(CrimeDate, Violent, Nonviolent) %>% 
+  summarise(Count=n()) 
+
+viol_theft2 <- viol_theft %>%
+  mutate(Type = (Violent==1)) %>% 
+  mutate(Type= replace(Type, Violent==1, "Violent")) %>% 
+  mutate(Type = replace(Type, Nonviolent==1, "Non-Violent"))
+
+viol_theft2$CrimeDate <- as.Date(viol_theft2$CrimeDate, format="%m/%d/%Y")
+
+ggplot(viol_theft2, aes(x=CrimeDate, y=Count, group=Type)) + 
+  geom_bar(stat="identity") +
+  facet_wrap(.~Type, ncol=1)
+```
+

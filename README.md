@@ -1,5 +1,5 @@
 # Analysis on Baltimore PD Crime Data
-Capstone project for the spring of 2020. Completed on April 28th, 2020. 
+Capstone project for the spring of 2020. Completed on April 28th, 2020. Please see the FinalReport.pdf or our dashboard for more details on the analysis. A non-technical summary can also be found on the dashboard. 
 
 ## Project Objectives
 Our primary goal is to find the best way to convey Baltimore’s crime data in a way that is helpful to the Baltimore Police Department. Our secondary goals were:

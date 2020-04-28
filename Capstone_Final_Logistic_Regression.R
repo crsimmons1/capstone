@@ -4,7 +4,7 @@ library(tidyverse)
 library(car)
 
 #Reading in Data
-data1<-read.csv("baltimore_cleaned2.csv", header = TRUE) #baltimore 
+data1<-read.csv("baltimore_cleaned.csv", header = TRUE) #baltimore 
 
 #Initial Logistic Regression to Remove Insignificant Variables
 logreg <- glm(Violent~Month+Year+Day+Inside+Weapon+District+Precipitation+Snow+SnowDepth+Tavg+Unemployment+CrimeType+Hour+DayPart, data=data1, family=binomial)

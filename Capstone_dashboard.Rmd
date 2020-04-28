@@ -325,7 +325,7 @@ Both models had prediction intervals that contained all of the real values for J
 Metrics| Model 1 | Model 2
 ------------- | ------------- | -------------
 **AIC** | 8.449309 | 8.448679  
-**AIC** | 8.449316 | 8.448692  
+**AICc** | 8.449316 | 8.448692  
 **BIC** | 8.461382 | 8.463771 
 **MAE** | 12.21906 | 12.22173  
 **RSME** | 14.5193 | 14.53334  
